@@ -41,12 +41,11 @@ These are the possible get commands:
 Detailed explanation
 ------
 
-
-Python 2.6.5
-surfaceflags.py
-
-
-
+#### Requirements
+Python 2.6.5  
+surfaceflags.py  
+  
+#### How to use
 This is a module for Python used to load BSP maps into readable data. The interface of the module is
 really simple; when creating an instance of the LoadBSP class, you tell what BSP file to load using
 the fname argument and the map will then begin loading. When the map is loaded, you can
@@ -76,13 +75,11 @@ that, locate the method, _convertEntityType, and replace "Vector3" with "numpy.a
   
 Links
 ======
-Thanks to
--------
+####Thanks to
 Thanks to "ThomasEgi" from [panda3d.org](https://panda3d.org). This module is based on the code, he
 provided in this thread: [panda3d.org...t=7920](https://www.panda3d.org/forums/viewtopic.php?t=7920)
 Thanks to "Kekoa Proudfoot" for the ["Unofficial Quake 3 Map Specs"](http://www.mralligator.com/q3/)
 
-Modules
-------
+####Non-standard modules
 [gameobjects](https://pypi.python.org/pypi/gameobjects)  
 [pygame 1.9.1](http://www.pygame.org/download.shtml)  
