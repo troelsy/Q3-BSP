@@ -35,6 +35,8 @@ These are the possible get commands:
 "lightvols"
 "visdata"
 ```
+(These names refer to the names given here:
+["Unofficial Quake 3 Map Specs"](http://www.mralligator.com/q3/))
 
 Detailed explanation
 ------
