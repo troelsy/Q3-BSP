@@ -8,6 +8,7 @@
 # struct.unpack() as integer and not tuple?
 # Reduce redundancy by passing data sizes
 # Add "send to OpenGL" function
+# procentage loaded as get command
 FLOAT = 4
 INT   = 4
 #CHAR  = 8?
