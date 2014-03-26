@@ -14,7 +14,7 @@ bsp = LoadBSP("maps/q3tourney6.bsp")
 for texture in bsp.get("textures"):
     print texture
 ```
-
+  
 These are the possible get commands:  
 ```
 "entities"
