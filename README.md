@@ -41,6 +41,7 @@ These are the possible get commands:
 Detailed explanation
 ------
 
+
 Python 2.6.5
 surfaceflags.py
 
@@ -60,7 +61,8 @@ for texture in bsp.get("textures"):
 ```
   
 Please read the documention on how to use the get() method.  
-  
+
+#### Compatability
 The lightmap is generated from bitmaps into images using PyGame. If you don't like PyGame, you can
 easily change the function, _readLightmap, to use another module.  
   
