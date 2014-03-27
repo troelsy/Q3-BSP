@@ -9,6 +9,7 @@
 # Reduce redundancy by passing data sizes
 # Add "send to OpenGL" function
 # procentage loaded as get command
+# multi thread option
 FLOAT = 4
 INT   = 4
 #CHAR  = 8?
