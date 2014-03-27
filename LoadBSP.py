@@ -21,26 +21,33 @@ LIGHTMAP = 128
 #OPENGL = True
 #PYGAME = True
 
-# Render using ...
+# Render module arguments
 #PYGAME = True
 #PIL    = True
 #NO_GFX = True
 
-# Use math module ...
-#NUMPY    = True
-#GAME_OBJ = True
-
-
-class IllegalFileFormat(Exception):pass
-
+# Math module arguments
+NUMPY    = 0x1
+GAME_OBJ = 0x2
 
 import pygame
 import struct
-from gameobjects.vector3 import *
+#import numpy
+#import gameobjects
+
+class IllegalFileFormat(Exception): pass
 
 class BSP(object):
-    def __init__(self, fname, debug = 0):
-        self.setDebugLvl(debug)
+    def __init__(self, fname, vector = GAME_OBJ, debug = 0):
+        self._setDebugLvl(debug)
+
+        # import vector module
+        if vector == GAME_OBJ:
+            import gameobjects.vector3
+            self.Vector = gameobjects.vector3.Vector3
+        elif vector == NUMPY:
+            import numpy
+            self.Vector = numpy.array
 
         self.infile = open(fname,"rb")
 
@@ -74,7 +81,15 @@ class BSP(object):
         for lump in self.lumps:
             lump[1](*lump[2])
 
-    def setDebugLvl(self, level):
+    def get(self, dictName):
+        try:
+            return self.lumpDict[dictName]
+        except KeyError, e:
+            raise ValueError("No lump found with that name")
+        except:
+            raise
+
+    def _setDebugLvl(self, level):
         if level == 0: # No debugging
             self.debug  = False
             self.debug2 = False
@@ -93,14 +108,6 @@ class BSP(object):
             self.debug3 = True
         else:
             raise ValueError("Could not set debugging level to: " + str(level))
-
-    def get(self, dictName):
-        try:
-            return self.lumpDict[dictName]
-        except KeyError, e:
-            raise ValueError("No lump found with that name")
-        except:
-            raise
 
     def _readHeader(self):
         if self.debug:
@@ -346,7 +353,7 @@ class BSP(object):
             print "END OF EFFECTS"
 
     def _convertEntityType(self, name, value):
-        if   name == "origin":     value = Vector3(map(lambda e: int(e), value))
+        if   name == "origin":     value = self.Vector(map(lambda e: int(e), value))
         elif name == "spawnflags": value = map(lambda e: int(e), value)
         elif name == "random":     value = map(lambda e: int(e), value)
         elif name == "wait":       value = map(lambda e: float(e), value)
@@ -365,6 +372,8 @@ class BSP(object):
 
             lineSplit = line.split()
             name, value = self._convertEntityType(lineSplit.pop(0), lineSplit)
+
+            print name, value
 
             eDict[name] = value
 
