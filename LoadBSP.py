@@ -7,7 +7,11 @@
 # Isn't seek at interations redundant?
 # struct.unpack() as integer and not tuple?
 # Reduce redundancy by passing data sizes
+# Add "send to OpenGL" function
+# procentage loaded as get command
+# multi thread option
 # Make toggle switch for numpy/gameobject and pygame/PIL
+
 FLOAT    = 4
 INT      = 4
 UBYTE    = 1
