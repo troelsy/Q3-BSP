@@ -5,21 +5,21 @@ What is this?
 This is a module for Python used to load Quake 3 Arena BSP files into readable data.
 
 
-TL;DR - **T**oo **L**ong; **D**idn't **R**ead
+TL;DR - Too Long; Didn't Read
 ------
 Download **LoadBSP.py** and **surfaceflags.py**  
 All colors are in RGBA and use the get() method to retrive data from the BSP file.  
   
-Example:  
+Example of use:  
 ```
 import LoadBSP
 bsp = LoadBSP.BSP('maps/q3tourney6.bsp')
 
 for texture in bsp.get("textures"):
-    print texture
+    print texture[0]
 ```
   
-These are the possible get commands:  
+These are the possible commands for get:  
 ```
 "entities"
 "textures"
@@ -39,7 +39,7 @@ These are the possible get commands:
 "lightvols"
 "visdata"
 ```
-(These names refer to the names given here:
+(These names refer to the names of the lumps given here:
 ["Unofficial Quake 3 Map Specs"](http://www.mralligator.com/q3/))
 
 Detailed explanation
@@ -51,7 +51,7 @@ tested.
 You will need "LoadBSP.py" for a minimal setup. If you want to read/translate texture flags, you'll
 have to download "surfaceflags.py" too. surfaceflags.py is a translation of
 [surfaceflags.h](https://github.com/id-Software/Quake-III-Arena/blob/master/code/game/surfaceflags.h)
-provided by ID softwares GitHub.
+provided by ID software's GitHub.
 I assume that you have read the article,
 ["Unofficial Quake 3 Map Specs"](http://www.mralligator.com/q3/), before using this module.
 
@@ -59,14 +59,15 @@ I assume that you have read the article,
 This is a module for Python used to load BSP maps into readable data. The interface of the module is
 really simple; when creating an instance of the LoadBSP class, you tell what BSP file to load using
 the "fname" argument and the map will then begin loading. When the map is loaded, you can
-use the get() method to retrive the data of each "lump". Here is an example:  
+use the get() method to retrive the data of each "lump". Here is an example, on how to print all the
+texture paths:  
 
 ```
 import LoadBSP
 bsp = LoadBSP.BSP('maps/q3tourney6.bsp')
 
 for texture in bsp.get("textures"):
-    print texture
+    print texture[0]
 ```
   
 Please read the documention on how to use the get() method.  
