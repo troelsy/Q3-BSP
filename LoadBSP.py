@@ -7,8 +7,12 @@
 # Isn't seek at interations redundant?
 # struct.unpack() as integer and not tuple?
 # Reduce redundancy by passing data sizes
-FLOAT = 4
-INT   = 4
+# Make toggle switch for numpy/gameobject and pygame/PIL
+FLOAT    = 4
+INT      = 4
+UBYTE    = 1
+STRING   = 64
+LIGHTMAP = 128
 #CHAR  = 8?
 
 import pygame
@@ -80,8 +84,8 @@ class BSP(object):
             print
             print "START OF HEADER"
 
-        magic = self.infile.read(4)
-        versionnumber = struct.unpack("<i" , self.infile.read(4))[0]
+        magic = self.infile.read(INT)
+        versionnumber = struct.unpack("<i" , self.infile.read(INT))[0]
 
         if magic != "IBSP": raise Exception("Target file is not a IBSP file")
         if versionnumber != 0x2e: raise Exception("Expected IBSP version be: 0x2e")
@@ -102,7 +106,7 @@ class BSP(object):
         if self.debug: print "END OF LUMPS"
   
     def _readLumpEntry(self):
-        lumpEntry = ( struct.unpack("<ii", self.infile.read(4*2)) )
+        lumpEntry = ( struct.unpack("<ii", self.infile.read(INT*2)) )
         if self.debug:
             print lumpEntry
 
@@ -110,27 +114,28 @@ class BSP(object):
 
     def _readTexture(self, offset):
         self.infile.seek(offset)
-        texturename = self.infile.read(64).rstrip("\0")
-        sourceFlags = struct.unpack("<i", self.infile.read(4))[0]
-        contentFlags= struct.unpack("<i", self.infile.read(4))[0]
-
-        return (texturename, hex(sourceFlags), hex(contentFlags))
+        texturename = self.infile.read(STRING).rstrip("\0")
+        sourceFlags = struct.unpack("<i", self.infile.read(INT))[0]
+        contentFlags= struct.unpack("<i", self.infile.read(INT))[0]
 
         if self.debug2:
             print
             print "texturename:" , texturename
-            print "sourceFlags:", hex(sourceFlags) , "contentFlags:",hex(contentFlags)
+            print "sourceFlags:",  sourceFlags
+            print "contentFlags:", contentFlags
+
+        return (texturename, sourceFlags, contentFlags)
 
     def _readTextures(self, offset, length):
         if self.debug:
             print
             print "START OF TEXTURES"
 
-        numtextures = length/(64+4+4) #thats 64chars,4byte int, 4 byte int  
+        numtextures = length/(STRING+INT+INT) #thats 64chars,4byte int, 4 byte int  
         if self.debug:
             print "Number of Textures", numtextures
-        for i in range(0, numtextures):
-            self.lumpDict["textures"].append(self._readTexture(offset+ i*(64+4+4)))
+        for i in range(numtextures):
+            self.lumpDict["textures"].append(self._readTexture(offset+ i*(STRING+INT+INT)))
 
         if self.debug2:
             for t in self.lumpDict["textures"]:
@@ -140,36 +145,34 @@ class BSP(object):
             print "END OF TEXTURES"
 
     def _readLightmap(self, offset):
-        width  = 128
-        height = 128
         self.infile.seek(offset)
 
-        texture   = pygame.Surface((width,height))
+        texture   = pygame.Surface((LIGHTMAP,LIGHTMAP))
         surfarray = pygame.surfarray.pixels3d(texture)
 
-        for x in range(width):
-            for y in range(height):
-                surfarray[y][x] = struct.unpack("<BBB", self.infile.read(3))
+        for x in range(LIGHTMAP):
+            for y in range(LIGHTMAP):
+                surfarray[y][x] = struct.unpack("<BBB", self.infile.read(UBYTE*3))
 
         pygame.surfarray.blit_array(texture, surfarray)
         self.lumpDict["lightmaps"].append(texture)
 
     def _readLightmaps(self, offset, length):
-        numLightmaps = length/(128*128*3)
+        numLightmaps = length/(LIGHTMAP*LIGHTMAP*3)
         if self.debug:
             print
             print "START OF LIGHTMAPS"
             print "Number of Lightmaps", numLightmaps
 
         for i in range(numLightmaps):
-            self._readLightmap(offset+ i*(128*128*3) )
+            self._readLightmap(offset+ i*(LIGHTMAP*LIGHTMAP*3) )
 
         if self.debug:
             print "END OF LIGHTMAPS"
 
     def _readMeshverts(self, offset, length):
         self.infile.seek(offset)
-        numMeshverts = length/4
+        numMeshverts = length/INT
 
         if self.debug:
             print 
@@ -178,7 +181,7 @@ class BSP(object):
             print "END OF MESHVERTS"
 
         for i in range(0,numMeshverts):
-            self.lumpDict["meshverts"].append(struct.unpack("<i", self.infile.read(4))[0])
+            self.lumpDict["meshverts"].append(struct.unpack("<i", self.infile.read(INT))[0])
 
         if self.debug3:
             for m in self.meshVertsList:
@@ -186,11 +189,11 @@ class BSP(object):
 
     def _readVertex(self, offset):
         self.infile.seek(offset)
-        vertexPos      = ( struct.unpack(  "<fff", self.infile.read(4*3)) )
-        vertexTexcoord = ( struct.unpack(   "<ff", self.infile.read(4*2)) )
-        vertexLightmap = ( struct.unpack(   "<ff", self.infile.read(4*2)) )
-        vertexNormal   = ( struct.unpack(  "<fff", self.infile.read(4*3)) )
-        vertexRGBA     = ( struct.unpack( "<BBBB", self.infile.read(1*4)) )
+        vertexPos      = ( struct.unpack(  "<fff", self.infile.read(FLOAT*3)) )
+        vertexTexcoord = ( struct.unpack(   "<ff", self.infile.read(FLOAT*2)) )
+        vertexLightmap = ( struct.unpack(   "<ff", self.infile.read(FLOAT*2)) )
+        vertexNormal   = ( struct.unpack(  "<fff", self.infile.read(FLOAT*3)) )
+        vertexRGBA     = ( struct.unpack( "<BBBB", self.infile.read(UBYTE*4)) )
                     
         if self.debug3:
             print "vertex Pos:",vertexPos
@@ -206,7 +209,7 @@ class BSP(object):
                                               vertexRGBA     = vertexRGBA))
 
     def _readVertices(self, offset , length):
-        numvertices = length / ( 3*4 + 2*4 + 2*4 + 3*4 + 4*1)
+        numvertices = length / (3*FLOAT + 2*FLOAT + 2*FLOAT + 3*FLOAT + 4*UBYTE)
         if self.debug:
             print 
             print "START OF VERTEXDATA"
@@ -216,7 +219,7 @@ class BSP(object):
             if self.debug3: print
             if self.debug2:  print "vertex #", i
 
-            self._readVertex(offset+ i* ( 3*4 + 2*4 + 2*4 + 3*4 + 4*1) )
+            self._readVertex(offset+ i* (3*FLOAT + 2*FLOAT + 2*FLOAT + 3*FLOAT + 4*UBYTE) )
 
         if self.debug:
             print "END OF VERTEXDATA" 
@@ -224,21 +227,21 @@ class BSP(object):
     def _readFace(self, offset):
         self.infile.seek(offset)
     
-        texture         =  struct.unpack("<i",   self.infile.read(4))[0]
-        effect          =  struct.unpack("<i",   self.infile.read(4))[0]
-        facetype        =  struct.unpack("<i",   self.infile.read(4))[0]
-        vertex          =  struct.unpack("<i",   self.infile.read(4))[0]
-        nVertices       =  struct.unpack("<i",   self.infile.read(4))[0]
-        meshVertex      =  struct.unpack("<i",   self.infile.read(4))[0]
-        nMeshVerts      =  struct.unpack("<i",   self.infile.read(4))[0]
-        lightmapIndex   =  struct.unpack("<i",   self.infile.read(4))[0]
-        lightmapStart   =  struct.unpack("<ii",  self.infile.read(4*2))
-        lightmapSize    =  struct.unpack("<ii",  self.infile.read(4*2))
-        lightmapOrigin  =  struct.unpack("<fff", self.infile.read(4*3))
-        lightmapVecs    = (struct.unpack("<fff", self.infile.read(4*3)), 
-                           struct.unpack("<fff", self.infile.read(4*3)))
-        normal          =  struct.unpack("<fff", self.infile.read(4*3))
-        patchSize       =  struct.unpack("<ii",  self.infile.read(4*2))
+        texture         =  struct.unpack("<i",   self.infile.read(INT))[0]
+        effect          =  struct.unpack("<i",   self.infile.read(INT))[0]
+        facetype        =  struct.unpack("<i",   self.infile.read(INT))[0]
+        vertex          =  struct.unpack("<i",   self.infile.read(INT))[0]
+        nVertices       =  struct.unpack("<i",   self.infile.read(INT))[0]
+        meshVertex      =  struct.unpack("<i",   self.infile.read(INT))[0]
+        nMeshVerts      =  struct.unpack("<i",   self.infile.read(INT))[0]
+        lightmapIndex   =  struct.unpack("<i",   self.infile.read(INT))[0]
+        lightmapStart   =  struct.unpack("<ii",  self.infile.read(INT*2))
+        lightmapSize    =  struct.unpack("<ii",  self.infile.read(INT*2))
+        lightmapOrigin  =  struct.unpack("<fff", self.infile.read(FLOAT*3))
+        lightmapVecs    = (struct.unpack("<fff", self.infile.read(FLOAT*3)), 
+                           struct.unpack("<fff", self.infile.read(FLOAT*3)))
+        normal          =  struct.unpack("<fff", self.infile.read(FLOAT*3))
+        patchSize       =  struct.unpack("<ii",  self.infile.read(INT*2))
 
         self.lumpDict["faces"].append(dict(texture=texture,
                                            effect=effect,
@@ -276,7 +279,7 @@ class BSP(object):
             print "patch size:",              patchSize
 
     def _readFaces(self, offset, length):
-        numfaces = length / (12*4 + 12*4+2*4) 
+        numfaces = length / (14*INT + 12*FLOAT)
         if self.debug:
             print 
             print "START OF FACEDATA"
@@ -286,34 +289,35 @@ class BSP(object):
             if self.debug3:
                 print 
                 print "faceNr:" ,i
-            self._readFace(offset+ i* (12*4 + 12*4+2*4) )
+            self._readFace(offset+ i* (14*INT + 12*FLOAT) )
 
         if self.debug:
             print "END OF FACEDATA"
 
     def _readEffect(self, offset):
         self.infile.seek(offset)
-        effectname = self.infile.read(64).rstrip("\0")
-        brush      = struct.unpack("<i", self.infile.read(4))[0]
-        unknown    = struct.unpack("<i", self.infile.read(4))[0]
-
-        return effectname
+        effectname = self.infile.read(STRING).rstrip("\0")
+        brush      = struct.unpack("<i", self.infile.read(INT))[0]
+        unknown    = struct.unpack("<i", self.infile.read(INT))[0]
 
         if self.debug2:
             print
             print "effectname:" , effectname
             print "sourceFlags:", hex(brush) , "contentFlags:",hex(unknown)
 
+        return effectname
+
     def _readEffects(self, offset, length):
         if self.debug:
             print
             print "START OF EFFECTS"
 
-        numeffect = length/(64+4+4) # 64 chars, 4byte int, 4 byte int
+        numeffect = length/(STRING+INT+INT) # 64 chars, int, int
         if self.debug:
             print "Number of effects", numeffect
+
         for i in range(numeffect):
-            self.lumpDict["effects"].append(self._readEffect(offset+ i*(64+4+4) ))
+            self.lumpDict["effects"].append(self._readEffect(offset+ i*(STRING+INT+INT) ))
 
         if self.debug:
             print "END OF EFFECTS"
@@ -359,12 +363,12 @@ class BSP(object):
 
     def _readModel(self, offset):
         self.infile.seek(offset)
-        mins      = struct.unpack("<fff", self.infile.read(4*3))
-        maxs      = struct.unpack("<fff", self.infile.read(4*3))
-        face      = struct.unpack("<i",   self.infile.read(4))[0]
-        n_faces   = struct.unpack("<i",   self.infile.read(4))[0]
-        brush     = struct.unpack("<i",   self.infile.read(4))[0]
-        n_brushes = struct.unpack("<i",   self.infile.read(4))[0]
+        mins      = struct.unpack("<fff", self.infile.read(FLOAT*3))
+        maxs      = struct.unpack("<fff", self.infile.read(FLOAT*3))
+        face      = struct.unpack("<i",   self.infile.read(INT))[0]
+        n_faces   = struct.unpack("<i",   self.infile.read(INT))[0]
+        brush     = struct.unpack("<i",   self.infile.read(INT))[0]
+        n_brushes = struct.unpack("<i",   self.infile.read(INT))[0]
 
         if self.debug3:
             print
@@ -382,21 +386,21 @@ class BSP(object):
             print
             print "START OF MODELS"
 
-        nummodels = length/(4*3+4*3+4+4+4+4) # float[3], float[3], int, int, int, int
+        nummodels = length/(FLOAT*6+INT*4) # float[3], float[3], int, int, int, int
         if self.debug:
             print "Number of models", nummodels
 
         for i in range(nummodels):
-            self.lumpDict["models"].append(self._readModel(offset+ i*(4*3+4*3+4+4+4+4) ))
+            self.lumpDict["models"].append(self._readModel(offset+ i*(FLOAT*6+INT*4) ))
 
         if self.debug:
             print "END OF MODELS"
 
     def _readBrush(self, offset):
         self.infile.seek(offset)
-        brushside    = struct.unpack("<i", self.infile.read(4))[0]
-        n_brushsides = struct.unpack("<i", self.infile.read(4))[0]
-        texture      = struct.unpack("<i", self.infile.read(4))[0]
+        brushside    = struct.unpack("<i", self.infile.read(INT))[0]
+        n_brushsides = struct.unpack("<i", self.infile.read(INT))[0]
+        texture      = struct.unpack("<i", self.infile.read(INT))[0]
 
         if self.debug3:
             print
@@ -411,22 +415,22 @@ class BSP(object):
             print
             print "START OF BRUSHES"
 
-        numbrush = length/(4+4+4) # int, int, int
+        numbrush = length/(INT*3) # int, int, int
         if self.debug:
             print "Number of brushes", numbrush
 
         for i in range(numbrush):
-            self.lumpDict["brushes"].append(self._readBrush(offset+ i*(4+4+4) ))
+            self.lumpDict["brushes"].append(self._readBrush(offset+ i*(INT*3) ))
 
         if self.debug:
             print "END OF BRUSHES"
 
     def _readBrushside(self, offset):
         self.infile.seek(offset)
-        plane   = struct.unpack("<i", self.infile.read(4))[0]
-        texture = struct.unpack("<i", self.infile.read(4))[0]
+        plane   = struct.unpack("<i", self.infile.read(INT))[0]
+        texture = struct.unpack("<i", self.infile.read(INT))[0]
 
-        if self.debug3 or True:
+        if self.debug3:
             print
             print "plane",plane
             print "texture",texture
@@ -434,26 +438,26 @@ class BSP(object):
         return (plane, texture)
 
     def _readBrushsides(self, offset, length):
-        if self.debug or True:
+        if self.debug:
             print
             print "START OF BRUSHESIDES"
 
-        numbrush = length/(4+4) # int, int
-        if self.debug or True:
+        numbrush = length/(INT*2) # int, int
+        if self.debug:
             print "Number of brushsides", numbrush
 
         for i in range(numbrush):
-            self.lumpDict["brushsides"].append(self._readBrushside(offset+ i*(4+4)))
+            self.lumpDict["brushsides"].append(self._readBrushside(offset+ i*(INT*2)))
 
-        if self.debug or True:
+        if self.debug:
             print "END OF BRUSHESIDES"
 
     def _readPlane(self, offset):
         self.infile.seek(offset)
-        normal = struct.unpack("<fff", self.infile.read(4*3))
-        dist   = struct.unpack("<f", self.infile.read(4))[0]
+        normal = struct.unpack("<fff", self.infile.read(FLOAT*3))
+        dist   = struct.unpack("<f", self.infile.read(FLOAT))[0]
 
-        if self.debug3 or True:
+        if self.debug3:
             print
             print "normal",normal
             print "dist",dist
@@ -461,22 +465,45 @@ class BSP(object):
         return (normal, dist)
 
     def _readPlanes(self, offset, length):
-        if self.debug or True:
+        if self.debug:
             print
             print "START OF PLANES"
 
-        nummodels = length/(4*3+4) # float[3], int
-        if self.debug or True:
+        nummodels = length/(FLOAT*3+INT) # float[3], int
+        if self.debug:
             print "Number of planes", nummodels
 
         for i in range(nummodels):
-            self.lumpDict["planes"].append(self._readPlane(offset+ i*(4*3+4)))
+            self.lumpDict["planes"].append(self._readPlane(offset+ i*(FLOAT*3+INT)))
 
-        if self.debug or True:
+        if self.debug:
             print "END OF PLANES"
 
     def _readVisdata(self, offset, length):
-        pass
+        """
+        if self.debug or True:
+            print
+            print "START OF VISDATA"
+
+        self.infile.seek(offset)
+        n_vecs  = struct.unpack("<i", self.infile.read(4))[0]
+        sz_vecs = struct.unpack("<i", self.infile.read(4))[0]
+        vec = []
+
+        for n in range(length-4-4):
+            vec.append(struct.unpack("<BBB", self.infile.read(3)))
+
+        for v in vec:
+            print v
+
+        if self.debug or True:
+            print "END OF VISDATA"
+
+
+        # int n_vecs  Number of vectors.
+        # int sz_vecs Size of each vector, in bytes.
+        # ubyte[n_vecs * sz_vecs] vecs    Visibility data. One bit per cluster per vector.
+        """
 
     def _readLightvols(self, offset, length):
         pass
@@ -522,4 +549,4 @@ if __name__ == "__main__":
         screen.blit(newBSP.lumpDict["lightmaps"][2], (258,0))
         screen.blit(newBSP.lumpDict["lightmaps"][3], (387,0))
         pygame.display.flip()
-        """
+    """
