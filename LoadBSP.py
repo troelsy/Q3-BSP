@@ -31,15 +31,16 @@ LIGHTMAP = 128
 #GAME_OBJ = True
 
 
+class IllegalFileFormat(Exception):pass
+
+
 import pygame
 import struct
 from gameobjects.vector3 import *
 
 class BSP(object):
-    def __init__(self, fname):
-        self.debug  = False # 1. level of detail
-        self.debug2 = False # 2. level of detail
-        self.debug3 = False # 3. level of detail
+    def __init__(self, fname, debug = 0):
+        self.setDebugLvl(debug)
 
         self.infile = open(fname,"rb")
 
@@ -74,7 +75,11 @@ class BSP(object):
             lump[1](*lump[2])
 
     def setDebugLvl(self, level):
-        if level == 1: # 1. level of detail
+        if level == 0: # No debugging
+            self.debug  = False
+            self.debug2 = False
+            self.debug3 = False
+        elif level == 1: # 1. level of detail
             self.debug  = True
             self.debug2 = False
             self.debug3 = False
@@ -86,12 +91,14 @@ class BSP(object):
             self.debug  = True
             self.debug2 = True
             self.debug3 = True
+        else:
+            raise ValueError("Could not set debugging level to: " + str(level))
 
     def get(self, dictName):
         try:
             return self.lumpDict[dictName]
         except KeyError, e:
-            raise Exception("No lump found with that name")
+            raise ValueError("No lump found with that name")
         except:
             raise
 
@@ -103,8 +110,8 @@ class BSP(object):
         magic = self.infile.read(INT)
         versionnumber = struct.unpack("<i" , self.infile.read(INT))[0]
 
-        if magic != "IBSP": raise Exception("Target file is not a IBSP file")
-        if versionnumber != 0x2e: raise Exception("Expected IBSP version be: 0x2e")
+        if magic != "IBSP": raise IllegalFileFormat("Target file is not a IBSP file")
+        if versionnumber != 0x2e: raise IllegalFileFormat("Expected IBSP version be: 0x2e")
 
         if self.debug:
             print "magic number:", magic
