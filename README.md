@@ -1,15 +1,19 @@
 Q3-BSP
 ======
+What is this?
+-----
+This is a module for Python used to load Quake 3 Arena BSP files into readable data.
 
-TL;DR
+
+TL;DR - **T**oo **L**ong; **D**idn't **R**ead
 ------
 Download **LoadBSP.py** and **surfaceflags.py**  
-All colors are in RGB/RGBA and use the get() method to retrive data from the BSP file.  
+All colors are in RGBA and use the get() method to retrive data from the BSP file.  
   
 Example:  
 ```
 import LoadBSP
-bsp = LoadBSP("maps/q3tourney6.bsp")
+bsp = LoadBSP.BSP('maps/q3tourney6.bsp')
 
 for texture in bsp.get("textures"):
     print texture
@@ -42,18 +46,24 @@ Detailed explanation
 ------
 
 #### Requirements
-Python 2.6.5  
-surfaceflags.py  
-  
+This module has been tested on Python 2.6.5. It will probably work on 2.7.x too, but it hasn't been
+tested.  
+You will need "LoadBSP.py" for a minimal setup. If you want to read/translate texture flags, you'll
+have to download "surfaceflags.py" too. surfaceflags.py is a translation of
+[surfaceflags.h](https://github.com/id-Software/Quake-III-Arena/blob/master/code/game/surfaceflags.h)
+provided by ID softwares GitHub.
+I assume that you have read the article,
+["Unofficial Quake 3 Map Specs"](http://www.mralligator.com/q3/), before using this module.
+
 #### How to use
 This is a module for Python used to load BSP maps into readable data. The interface of the module is
 really simple; when creating an instance of the LoadBSP class, you tell what BSP file to load using
-the fname argument and the map will then begin loading. When the map is loaded, you can
+the "fname" argument and the map will then begin loading. When the map is loaded, you can
 use the get() method to retrive the data of each "lump". Here is an example:  
 
 ```
 import LoadBSP
-bsp = LoadBSP("maps/q3tourney6.bsp")
+bsp = LoadBSP.BSP('maps/q3tourney6.bsp')
 
 for texture in bsp.get("textures"):
     print texture
