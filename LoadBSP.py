@@ -1,45 +1,62 @@
 
-# https://www.panda3d.org/forums/viewtopic.php?t=7920
-# http://www.mralligator.com/q3/
-# https://pypi.python.org/pypi/gameobjects
-# http://www.pygame.org/download.shtml
+__author__     = "Troels Ynddal"
+__copyright__  = "Copyright 2014, Troels Ynddal"
+__credits__    = ["Troels Ynddal", "Kekoa Proudfoot", "Thomas Egi"]
+__license__    = "GPL v2"
+__version__    = "1.0.0"
+__maintainer__ = "Troels Ynddal"
+__email__      = "troelsynddal.public@gmail.com"
+__status__     = "Development"
 
-# Isn't seek at interations redundant?
-# struct.unpack() as integer and not tuple?
-# Reduce redundancy by passing data sizes (INT*3 + STRING + FLOAT)
-# Add "send to OpenGL" function
-# procentage loaded as get command
-# Make toggle switch for numpy/gameobject and pygame/PIL
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+# BSP constants
 FLOAT    = 4
 INT      = 4
 UBYTE    = 1
 STRING   = 64
 LIGHTMAP = 128
 
-# Send GFX to ...
-#OPENGL = True
-#PYGAME = True
-
 # Render module arguments
-#PYGAME = True
-#PIL    = True
-#NO_GFX = True
+PYGAME   = 0x10
+PIL      = 0x11
+NO_GFX   = 0x12 # Python 3D List
 
 # Math module arguments
 NUMPY    = 0x1
 GAME_OBJ = 0x2
+LIST     = 0x3
 
-import pygame
+import pygame # http://www.pygame.org/download.shtml
+from PIL import Image
+
+
 import struct
-#import numpy
-#import gameobjects
+import math
+#import numpy # https://pypi.python.org/pypi/numpy
+#import gameobjects # https://pypi.python.org/pypi/gameobjects
 
 class IllegalFileFormat(Exception): pass
+class IllegalMathModule(Exception): pass
+class IllegalGFXModule(Exception):  pass
 
 class BSP(object):
-    def __init__(self, fname, vector = GAME_OBJ, debug = 0):
-        self._setDebugLvl(debug)
+    def __init__(self, fname, vector = LIST, gfx = PYGAME, debug = 0):
+        self.GFX_module = gfx
+        self._setDebugLvl(debug) # Set debugging output level. Default: 0
+        self.percentage = 0.0 # Variable for percentage loaded
 
         # import vector module
         if vector == GAME_OBJ:
@@ -48,6 +65,20 @@ class BSP(object):
         elif vector == NUMPY:
             import numpy
             self.Vector = numpy.array
+        elif vector == LIST:
+            self.Vector = self._arrayVector
+        else:
+            raise IllegalMathModule("Could not recognize math module: " + str(vector))
+
+        # Select function for generation of lightmap
+        if gfx == PYGAME:
+            self._readLightmap = self._readLightmapPyGame
+        elif gfx == PIL:
+            self._readLightmap = self._readLightmapPIL
+        elif gfx == NO_GFX:
+            self._readLightmap = self._readLightmapNoGFX
+        else:
+            raise IllegalGFXModule("Could not recognize GFX module: " + str(gfx))
 
         self.infile = open(fname,"rb")
 
@@ -74,12 +105,19 @@ class BSP(object):
         for lump in self.lumps:
             self.lumpDict[lump[0]] = []
 
+        # Read header and lumps directory
         self._readHeader()
         self._readLumps()
 
         # Read data from lumps
         for lump in self.lumps:
             lump[1](*lump[2])
+            self.percentage += 1./len(self.lumps)*100
+
+        self.percentage = 100.
+
+    def _arrayVector(self, *args):
+        return args
 
     def get(self, dictName):
         try:
@@ -88,6 +126,12 @@ class BSP(object):
             raise ValueError("No lump found with that name")
         except:
             raise
+
+    def getPercentage(self, ceil = True):
+        if ceil:
+            return math.ceil(self.percentage)
+        else:
+            return self.percentage
 
     def _setDebugLvl(self, level):
         if level == 0: # No debugging
@@ -142,8 +186,7 @@ class BSP(object):
 
         return lumpEntry
 
-    def _readTexture(self, offset):
-        self.infile.seek(offset)
+    def _readTexture(self):
         texturename = self.infile.read(STRING).rstrip("\0")
         sourceFlags = struct.unpack("<i", self.infile.read(INT))[0]
         contentFlags= struct.unpack("<i", self.infile.read(INT))[0]
@@ -164,8 +207,10 @@ class BSP(object):
         numtextures = length/(STRING+INT+INT) #thats 64chars,4byte int, 4 byte int  
         if self.debug:
             print "Number of Textures", numtextures
+
+        self.infile.seek(offset)
         for i in range(numtextures):
-            self.lumpDict["textures"].append(self._readTexture(offset+ i*(STRING+INT+INT)))
+            self.lumpDict["textures"].append(self._readTexture())
 
         if self.debug2:
             for t in self.lumpDict["textures"]:
@@ -174,9 +219,16 @@ class BSP(object):
         if self.debug:
             print "END OF TEXTURES"
 
-    def _readLightmap(self, offset):
-        self.infile.seek(offset)
+    def _readLightmapPIL(self):
+        texture = Image.new('RGB', (LIGHTMAP,LIGHTMAP), (0,0,0))
 
+        for x in range(LIGHTMAP):
+            for y in range(LIGHTMAP):
+                texture.putpixel((y, x), struct.unpack("<BBB", self.infile.read(UBYTE*3)) )
+
+        self.lumpDict["lightmaps"].append(texture)
+
+    def _readLightmapPyGame(self):
         texture   = pygame.Surface((LIGHTMAP,LIGHTMAP))
         surfarray = pygame.surfarray.pixels3d(texture)
 
@@ -187,6 +239,16 @@ class BSP(object):
         pygame.surfarray.blit_array(texture, surfarray)
         self.lumpDict["lightmaps"].append(texture)
 
+    def _readLightmapNoGFX(self):
+        texture = []
+
+        for x in range(LIGHTMAP):
+            texture.append([])
+            for y in range(LIGHTMAP):
+                texture[x].append(struct.unpack("<BBB", self.infile.read(UBYTE*3)))
+
+        self.lumpDict["lightmaps"].append(texture)
+
     def _readLightmaps(self, offset, length):
         numLightmaps = length/(LIGHTMAP*LIGHTMAP*3)
         if self.debug:
@@ -194,8 +256,9 @@ class BSP(object):
             print "START OF LIGHTMAPS"
             print "Number of Lightmaps", numLightmaps
 
+        self.infile.seek(offset)
         for i in range(numLightmaps):
-            self._readLightmap(offset+ i*(LIGHTMAP*LIGHTMAP*3) )
+            self._readLightmap()
 
         if self.debug:
             print "END OF LIGHTMAPS"
@@ -217,8 +280,7 @@ class BSP(object):
             for m in self.meshVertsList:
                 print m
 
-    def _readVertex(self, offset):
-        self.infile.seek(offset)
+    def _readVertex(self):
         vertexPos      = ( struct.unpack(  "<fff", self.infile.read(FLOAT*3)) )
         vertexTexcoord = ( struct.unpack(   "<ff", self.infile.read(FLOAT*2)) )
         vertexLightmap = ( struct.unpack(   "<ff", self.infile.read(FLOAT*2)) )
@@ -245,18 +307,17 @@ class BSP(object):
             print "START OF VERTEXDATA"
             print "number of numvertices:", numvertices
 
+        self.infile.seek(offset)
         for i in range(0,numvertices):
             if self.debug3: print
             if self.debug2:  print "vertex #", i
 
-            self._readVertex(offset+ i* (3*FLOAT + 2*FLOAT + 2*FLOAT + 3*FLOAT + 4*UBYTE) )
+            self._readVertex()
 
         if self.debug:
             print "END OF VERTEXDATA" 
 
-    def _readFace(self, offset):
-        self.infile.seek(offset)
-    
+    def _readFace(self):
         texture         =  struct.unpack("<i",   self.infile.read(INT))[0]
         effect          =  struct.unpack("<i",   self.infile.read(INT))[0]
         facetype        =  struct.unpack("<i",   self.infile.read(INT))[0]
@@ -315,17 +376,18 @@ class BSP(object):
             print "START OF FACEDATA"
             print "number of faces:", numfaces
 
+
+        self.infile.seek(offset)
         for i in range(numfaces):
             if self.debug3:
                 print 
                 print "faceNr:" ,i
-            self._readFace(offset+ i* (14*INT + 12*FLOAT) )
+            self._readFace()
 
         if self.debug:
             print "END OF FACEDATA"
 
-    def _readEffect(self, offset):
-        self.infile.seek(offset)
+    def _readEffect(self):
         effectname = self.infile.read(STRING).rstrip("\0")
         brush      = struct.unpack("<i", self.infile.read(INT))[0]
         unknown    = struct.unpack("<i", self.infile.read(INT))[0]
@@ -346,8 +408,9 @@ class BSP(object):
         if self.debug:
             print "Number of effects", numeffect
 
+        self.infile.seek(offset)
         for i in range(numeffect):
-            self.lumpDict["effects"].append(self._readEffect(offset+ i*(STRING+INT+INT) ))
+            self.lumpDict["effects"].append(self._readEffect())
 
         if self.debug:
             print "END OF EFFECTS"
@@ -373,8 +436,6 @@ class BSP(object):
             lineSplit = line.split()
             name, value = self._convertEntityType(lineSplit.pop(0), lineSplit)
 
-            print name, value
-
             eDict[name] = value
 
         self.lumpDict["entities"].append(eDict)
@@ -393,8 +454,8 @@ class BSP(object):
         if self.debug:
             print "END OF EFFECTS"
 
-    def _readModel(self, offset):
-        self.infile.seek(offset)
+    def _readModel(self):
+
         mins      = struct.unpack("<fff", self.infile.read(FLOAT*3))
         maxs      = struct.unpack("<fff", self.infile.read(FLOAT*3))
         face      = struct.unpack("<i",   self.infile.read(INT))[0]
@@ -422,14 +483,14 @@ class BSP(object):
         if self.debug:
             print "Number of models", nummodels
 
+        self.infile.seek(offset)
         for i in range(nummodels):
-            self.lumpDict["models"].append(self._readModel(offset+ i*(FLOAT*6+INT*4) ))
+            self.lumpDict["models"].append(self._readModel())
 
         if self.debug:
             print "END OF MODELS"
 
-    def _readBrush(self, offset):
-        self.infile.seek(offset)
+    def _readBrush(self):
         brushside    = struct.unpack("<i", self.infile.read(INT))[0]
         n_brushsides = struct.unpack("<i", self.infile.read(INT))[0]
         texture      = struct.unpack("<i", self.infile.read(INT))[0]
@@ -451,14 +512,14 @@ class BSP(object):
         if self.debug:
             print "Number of brushes", numbrush
 
+        self.infile.seek(offset)
         for i in range(numbrush):
-            self.lumpDict["brushes"].append(self._readBrush(offset+ i*(INT*3) ))
+            self.lumpDict["brushes"].append(self._readBrush())
 
         if self.debug:
             print "END OF BRUSHES"
 
-    def _readBrushside(self, offset):
-        self.infile.seek(offset)
+    def _readBrushside(self):
         plane   = struct.unpack("<i", self.infile.read(INT))[0]
         texture = struct.unpack("<i", self.infile.read(INT))[0]
 
@@ -478,14 +539,14 @@ class BSP(object):
         if self.debug:
             print "Number of brushsides", numbrush
 
+        self.infile.seek(offset)
         for i in range(numbrush):
-            self.lumpDict["brushsides"].append(self._readBrushside(offset+ i*(INT*2)))
+            self.lumpDict["brushsides"].append(self._readBrushside())
 
         if self.debug:
             print "END OF BRUSHESIDES"
 
-    def _readPlane(self, offset):
-        self.infile.seek(offset)
+    def _readPlane(self):
         normal = struct.unpack("<fff", self.infile.read(FLOAT*3))
         dist   = struct.unpack("<f", self.infile.read(FLOAT))[0]
 
@@ -505,13 +566,15 @@ class BSP(object):
         if self.debug:
             print "Number of planes", nummodels
 
+        self.infile.seek(offset)
         for i in range(nummodels):
-            self.lumpDict["planes"].append(self._readPlane(offset+ i*(FLOAT*3+INT)))
+            self.lumpDict["planes"].append(self._readPlane())
 
         if self.debug:
             print "END OF PLANES"
 
     def _readVisdata(self, offset, length):
+        self.lumpDict["visdata"].append("not implemented yet")
         """
         if self.debug or True:
             print
@@ -538,47 +601,20 @@ class BSP(object):
         """
 
     def _readLightvols(self, offset, length):
-        pass
+        self.lumpDict["lightvols"].append("not implemented yet")
 
     def _readNodes(self, offset, length):
-        pass
+        self.lumpDict["nodes"].append("not implemented yet")
 
     def _readLeafs(self, offset, length):
-        pass
+        self.lumpDict["leafs"].append("not implemented yet")
 
     def _readLeafsFaces(self, offset, length):
-        pass
+        self.lumpDict["leaffaces"].append("not implemented yet")
 
     def _readLeafBrushes(self, offset, length):
-        pass
+        self.lumpDict["leafbrushes"].append("not implemented yet")
 
 if __name__ == "__main__":
-    newBSP = BSP('maps/q3tourney6.bsp')
+    newBSP = BSP('maps/q3tourney6.bsp', vector = GAME_OBJ, gfx = PYGAME, debug = 0)
 
-    pygame.init()
-    """
-    SCREEN_SIZE = (640,480)
-    screen = pygame.display.set_mode(SCREEN_SIZE,0,32)
-    background = pygame.Surface(SCREEN_SIZE)
-    background.fill((255,255,255))
-    clock = pygame.time.Clock()
-    loop = True
-    while loop:
-        time_passed = clock.tick()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                    loop = False
-
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_ESCAPE:
-                    loop = False
-    
-        screen.blit(background,(0,0))
-
-        screen.blit(newBSP.lumpDict["lightmaps"][0], (0,0))
-        screen.blit(newBSP.lumpDict["lightmaps"][1], (129,0))
-        screen.blit(newBSP.lumpDict["lightmaps"][2], (258,0))
-        screen.blit(newBSP.lumpDict["lightmaps"][3], (387,0))
-        pygame.display.flip()
-    """
