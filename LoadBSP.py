@@ -277,7 +277,7 @@ class BSP(object):
             self.lumpDict["meshverts"].append(struct.unpack("<i", self.infile.read(INT))[0])
 
         if self.debug3:
-            for m in self.meshVertsList:
+            for m in self.get("meshverts"):
                 print m
 
     def _readVertex(self):
