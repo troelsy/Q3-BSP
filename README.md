@@ -2,18 +2,22 @@ Q3-BSP
 ======
 What is this?
 -----
-This is a module for Python used to load Quake 3 Arena BSP files into readable data.
-
+This is a module for Python used to load Quake 3 Arena BSP files into readable data.  
+This module does not yet support: visdata, lightvols, nodes, leafs, leaf faces, brushes
 
 TL;DR - Too Long; Didn't Read
 ------
 Download **LoadBSP.py** and **surfaceflags.py**  
 All colors are in RGBA and use the get() method to retrive data from the BSP file.  
+You can choose to use either gameobjects (GAME_OBJ), numpy (NUMPY) or python lists (LIST) for vector
+using the "vector" keyword parameter. The same goes for graphics module ("gfx" parameter). For
+graphics, you can choose from: PyGame (PYGAME), PIL (PIL) or 3D python lists (NO_GFX). Default
+settings is: vector = LIST, gfx = PYGAME.
   
 Example of use:  
 ```
 import LoadBSP
-bsp = LoadBSP.BSP('maps/q3tourney6.bsp')
+bsp = LoadBSP.BSP('maps/q3tourney6.bsp', vector = LoadBSP.GAME_OBJ, gfx = LoadBSP.PYGAME)
 
 for texture in bsp.get("textures"):
     print texture[0]
@@ -41,6 +45,7 @@ I assume that you have read the article,
 ["Unofficial Quake 3 Map Specs"](http://www.mralligator.com/q3/), before using this module.
 
 #### How to use
+Please read the TL;DR first. This gives a brief description of all the parameters.  
 This is a module for Python used to load BSP maps into readable data. The interface of the module is
 really simple; when creating an instance of the LoadBSP class, you tell what BSP file to load using
 the "fname" argument and the map will then begin loading. When the map is loaded, you can
@@ -54,20 +59,13 @@ bsp = LoadBSP.BSP('maps/q3tourney6.bsp')
 for texture in bsp.get("textures"):
     print texture[0]
 ```
+With no keyword parameters, it uses python lists for vectors and PyGame for graphics.  
   
-Please, read the documention on how to use the get() method.  
-
-#### Compatability
-The lightmap is generated from bitmaps into images using PyGame. If you don't like PyGame, you can
-easily change the function to use another module. Just search for "_readLightmap" and change the
-PyGame references to you prefered   
-  
-Besides PyGame, this modules depends on GameObjects 0.3 (Links to all the modules can be found at
-the bottom of this document). The GameObjects is just for 3D vectors, and as with lightmapping, this
-can easily be changed. If you want to use, let's say, numpy, you'll have to remove the line that
-imports gameobjects ("from gameobjects.vector3 import *") and write "import numpy" instead. After
-that, locate the method, _convertEntityType, and replace "Vector3" with "numpy.array" - that's it!  
-  
+Using PIL instead of PyGame:  
+```
+import LoadBSP
+bsp = LoadBSP.BSP('maps/q3tourney6.bsp', gfx = LoadBSP.PIL)
+```
   
 Thanks to
 ======
