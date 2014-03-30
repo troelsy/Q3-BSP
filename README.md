@@ -70,7 +70,7 @@ for texture in bsp.get("textures"):
     print texture[0]
 ```
   
-Please read the documention on how to use the get() method.  
+Please, read the documention on how to use the get() method.  
 
 #### Compatability
 The lightmap is generated from bitmaps into images using PyGame. If you don't like PyGame, you can
