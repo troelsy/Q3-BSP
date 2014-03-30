@@ -21,23 +21,8 @@ for texture in bsp.get("textures"):
   
 These are the possible commands for get:  
 ```
-"entities"
-"textures"
-"planes"
-"nodes"
-"leafs"
-"leaffaces"
-"leafbrushes"
-"models"
-"brushes"
-"brushsides"
-"vertices"
-"meshverts"
-"effects"
-"faces"
-"lightmaps"
-"lightvols"
-"visdata"
+"entities", "textures", "planes", "nodes", "leafs", "leaffaces", "leafbrushes", "models", "brushes"
+"brushsides", "vertices", "meshverts", "effects", "faces", "lightmaps", "lightvols", "visdata"
 ```
 (These names refer to the names of the lumps given here:
 ["Unofficial Quake 3 Map Specs"](http://www.mralligator.com/q3/))
