@@ -39,10 +39,6 @@ NUMPY    = 0x1
 GAME_OBJ = 0x2
 LIST     = 0x3
 
-import pygame # http://www.pygame.org/download.shtml
-from PIL import Image
-
-
 import struct
 import math
 #import numpy # https://pypi.python.org/pypi/numpy
@@ -68,17 +64,21 @@ class BSP(object):
         elif vector == LIST:
             self.Vector = self._arrayVector
         else:
-            raise IllegalMathModule("Could not recognize math module: " + str(vector))
+            raise IllegalMathModule("Could not recognize math module")
 
         # Select function for generation of lightmap
         if gfx == PYGAME:
+            global pygame
+            import pygame
             self._readLightmap = self._readLightmapPyGame
         elif gfx == PIL:
+            global Image
+            from PIL import Image
             self._readLightmap = self._readLightmapPIL
         elif gfx == NO_GFX:
             self._readLightmap = self._readLightmapNoGFX
         else:
-            raise IllegalGFXModule("Could not recognize GFX module: " + str(gfx))
+            raise IllegalGFXModule("Could not recognize GFX module")
 
         self.infile = open(fname,"rb")
 
@@ -616,5 +616,5 @@ class BSP(object):
         self.lumpDict["leafbrushes"].append("not implemented yet")
 
 if __name__ == "__main__":
-    newBSP = BSP('maps/q3tourney6.bsp', vector = GAME_OBJ, gfx = PYGAME, debug = 0)
+    newBSP = BSP('maps/q3tourney6.bsp', vector = GAME_OBJ, gfx = PYGAME)
 
