@@ -120,6 +120,7 @@ class BSP(object):
         return args
 
     def get(self, dictName):
+        # Should use the .get() method of dict. This returns None instead of exception
         try:
             return self.lumpDict[dictName]
         except KeyError, e:

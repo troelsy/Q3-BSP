@@ -79,6 +79,9 @@ Links
 ####Sources
 ["Unofficial Quake 3 Map Specs"](http://www.mralligator.com/q3/)  
 [panda3d.org](https://panda3d.org)  
+[graphics.cs.brown.edu](http://graphics.cs.brown.edu/games/quake/quake3.html)
+[misofruit.co.kr](http://web.archive.org/web/20121028212234/http://www.misofruit.co.kr/seojewoo/programming/opengl/Quake3Format.htm)
+[devmaster.net](http://web.archive.org/web/20111112060250/http://www.devmaster.net/articles/quake3collision/)
 
 ####Non-standard modules
 [gameobjects](https://pypi.python.org/pypi/gameobjects)  
